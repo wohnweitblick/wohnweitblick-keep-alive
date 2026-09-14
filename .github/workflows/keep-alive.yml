@@ -1,0 +1,82 @@
+name: Keep WohnWeitblick awake
+
+on:
+  schedule:
+    # Alle 12 Minuten: 03, 15, 27, 39 und 51 jeder Stunde.
+    - cron: "3,15,27,39,51 * * * *"
+
+  # Ermöglicht einen manuellen Test über GitHub Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wohnweitblick-keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Wake Render and check WohnWeitblick
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Wake Render service
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RENDER_URL="https://wohnweitblick-staging.onrender.com/"
+
+          echo "Zeitpunkt (UTC): $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Rufe den Render-Service auf: ${RENDER_URL}"
+
+          curl \
+            --request GET \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --connect-timeout 20 \
+            --max-time 120 \
+            --retry 4 \
+            --retry-delay 10 \
+            --retry-max-time 180 \
+            --retry-all-errors \
+            --header "Cache-Control: no-cache" \
+            --header "User-Agent: WohnWeitblick-KeepAlive/1.0" \
+            --output /dev/null \
+            --write-out "Render HTTP-Status: %{http_code}\nRender Gesamtzeit: %{time_total}s\nRender URL: %{url_effective}\n" \
+            "${RENDER_URL}"
+
+          echo "Render-Service antwortet."
+
+      - name: Check public domain
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PUBLIC_URL="https://wohnweitblick.de/"
+
+          echo "Prüfe die öffentliche Domain: ${PUBLIC_URL}"
+
+          curl \
+            --request GET \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --connect-timeout 20 \
+            --max-time 120 \
+            --retry 3 \
+            --retry-delay 10 \
+            --retry-max-time 150 \
+            --retry-all-errors \
+            --header "Cache-Control: no-cache" \
+            --header "User-Agent: WohnWeitblick-KeepAlive/1.0" \
+            --output /dev/null \
+            --write-out "Domain HTTP-Status: %{http_code}\nDomain Gesamtzeit: %{time_total}s\nFinale URL: %{url_effective}\n" \
+            "${PUBLIC_URL}"
+
+          echo "Öffentliche Domain antwortet."
