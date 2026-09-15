@@ -2,8 +2,8 @@ name: Keep WohnWeitblick awake
 
 on:
   schedule:
-    # Maximal 9 Minuten Abstand: 00, 09, 18, 27, 36, 45 und 54.
-    - cron: '*/9 * * * *'
+    # Alle 5 Minuten für ausreichenden Puffer vor dem Render-Ruhezustand.
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
